@@ -34,7 +34,7 @@ resource "aws_route_table" "prod-route-table" {
   }
 }
 
-# Create a subnet
+#4 Create a subnet
 resource "aws_subnet" "subnet-1"{
   vpc_id = aws_vpc.prod-vpc.id
   cidr_block = "10.0.1.0/24"
@@ -45,14 +45,14 @@ resource "aws_subnet" "subnet-1"{
   }
 }
 
-# Associate subnet with route table
+#5 Associate subnet with route table
 resource "aws_route_table_association" "a" {
   subnet_id      = aws_subnet.subnet-1.id
   route_table_id = aws_route_table.prod-route-table.id
 }
 
 
-# Create a security group to allow for port 22, 80 and 443
+#6 Create a security group to allow for port 22, 80 and 443
 resource "aws_security_group" "allow_web" {
   name        = "allow_tls"
   description = "Allow web inbound traffic"
@@ -94,3 +94,20 @@ resource "aws_security_group" "allow_web" {
     Name = "allow_web"
   }
 }
+
+#7 Create a network interface with an ip of the subnet that was created in step 4
+resource "aws_network_interface" "web-server-nic" {
+  subnet_id       = aws_subnet.subnet-1.id
+  private_ips     = ["10.0.1.50"]
+  security_groups = [aws_security_group.allow_web.id]
+}
+
+#8 Create an elastic ip to the network interface created in step 7
+resource "aws_eip" "one" {
+  domain                    = "vpc"
+  network_interface         = aws_network_interface.web-server-nic.id
+  associate_with_private_ip = "10.0.1.50"
+  depends_on = "aws_internet_gateway.gw"
+}
+
+#9 Create an ubuntu server and install/enable apache
